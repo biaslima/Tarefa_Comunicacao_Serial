@@ -12,6 +12,7 @@
 //Definição de pinos e variáveis globais
 #define led_pin_blue 12
 #define led_pin_green 11
+#define led_pin_red 13
 #define button_a 5
 #define button_b 6
 
@@ -161,6 +162,10 @@ int main()
      gpio_init(led_pin_green);
      gpio_set_dir(led_pin_green, GPIO_OUT);
      gpio_put(led_pin_green, 0);
+
+     gpio_init(led_pin_red);
+     gpio_set_dir(led_pin_red, GPIO_OUT);
+     gpio_put(led_pin_red, 0);
  
      gpio_init(led_matrix_pin);
      gpio_set_dir(led_matrix_pin, GPIO_OUT);
@@ -193,12 +198,8 @@ int main()
     gpio_set_irq_enabled_with_callback(button_a, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
     gpio_set_irq_enabled_with_callback(button_b, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 
-    bool cor = true;
-
     while (true) {
-
-        cor = !cor;
-        ssd1306_fill(&ssd, !cor);
+        ssd1306_fill(&ssd, false);
         if (stdio_usb_connected()) {
             char c;
             if (scanf("%c", &c) == 1) {
@@ -222,24 +223,33 @@ int main()
 //Funções de interrupção
 void gpio_irq_handler(uint gpio, uint32_t events)
 {
-    uint32_t current_time = time_us_32();
-    if (current_time - last_time > 50000) { 
-        last_time = current_time;
-        
-        ssd1306_fill(&ssd, false);
-        
-        if (gpio == button_a) {
-            gpio_put(led_pin_green, 1);
-            gpio_put(led_pin_blue, 0);
-            ssd1306_draw_string(&ssd, "Verde: Ativo", 20, 30);
-            printf("Led Verde ativo\n");
-        } 
-        else if (gpio == button_b) {
-            gpio_put(led_pin_green, 0);
-            gpio_put(led_pin_blue, 1);
-            ssd1306_draw_string(&ssd, "Azul: Ativo", 20, 30);
-            printf("Led Azul ativo\n");
+    #define DEBOUNCE_TIME_MS 50
+    static uint32_t last_a_time = 0;
+    static uint32_t last_b_time = 0;
+    char buffer[20];
+    uint32_t now = to_ms_since_boot(get_absolute_time());
+
+    ssd1306_fill(&ssd, false);
+    
+    if (gpio == button_a) {
+        if ((now - last_a_time) > DEBOUNCE_TIME_MS) {
+            last_a_time = now;
+            bool estado = gpio_get(led_pin_green);
+            gpio_put(led_pin_green, !estado);
+            snprintf(buffer, "Verde: %s", estado ? "Verde OFF" : "Verde ON");
+            ssd1306_draw_string(&ssd, buffer, 30, 30);
+            printf("LED Verde: %s\n", estado ? "Desligado" : "Ligado");
         }
-        ssd1306_send_data(&ssd);
+    } 
+    else if (gpio == button_b) {
+        if ((now - last_b_time) > DEBOUNCE_TIME_MS) {
+            last_b_time = now;
+            bool estado = gpio_get(led_pin_blue);
+            gpio_put(led_pin_blue, !estado);
+            snprintf(buffer, "Azul: %s", estado ? "Azul OFF" : "Azul ON");
+            ssd1306_draw_string(&ssd, buffer, 30, 30);
+            printf("LED Azul: %s\n", estado ? "Desligado" : "Ligado");
+        }
     }
+    ssd1306_send_data(&ssd);
 }
