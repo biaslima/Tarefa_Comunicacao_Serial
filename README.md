@@ -1,6 +1,7 @@
 # Projeto de Comunicação Serial
 
 Este projeto implementa um sistema de comunicação serial utilizando o Raspberry Pi Pico W, integrando um display OLED, uma matriz de LEDs WS2812 e botões para interação.
+Link para vídeo demonstrativo do projeto: https://drive.google.com/file/d/1c9utOsgYzQM17zIQ1Rc8hG5jpVC6waa9/view?usp=sharing
 
 ## 📌 Funcionalidades
 - Exibição de caracteres no display OLED
